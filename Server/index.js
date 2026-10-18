@@ -6,6 +6,7 @@ const mongoose = require("mongoose");
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use("/api/auth", require("./routes/auth"));
 
 app.get("/", (req, res) => {
   res.send("Hello from the Kanban server");
