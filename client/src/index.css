@@ -4,3 +4,11 @@ body { font-family: system-ui, sans-serif; margin: 0; background: #f4f5f7; }
 .auth-box button { width: 100%; padding: 10px; cursor: pointer; }
 .error { color: #c0392b; margin-bottom: 10px; }
 .link { background: none; border: none; color: #0052cc; cursor: pointer; margin-top: 10px; }
+
+.page { max-width: 900px; margin: 0 auto; padding: 16px 24px; }
+.topbar { display: flex; justify-content: space-between; align-items: center; }
+.new-board { display: flex; gap: 8px; margin-bottom: 20px; }
+.new-board input { flex: 1; padding: 8px; }
+.board-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+.board-card { background: #0079bf; color: #fff; padding: 24px 16px; border-radius: 6px; text-decoration: none; font-weight: 600; }
+.board-card:hover { background: #026aa7; }
