@@ -12,3 +12,12 @@ body { font-family: system-ui, sans-serif; margin: 0; background: #f4f5f7; }
 .board-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
 .board-card { background: #0079bf; color: #fff; padding: 24px 16px; border-radius: 6px; text-decoration: none; font-weight: 600; }
 .board-card:hover { background: #026aa7; }
+
+.page.wide { max-width: none; }
+.columns { display: flex; gap: 12px; align-items: flex-start; overflow-x: auto; padding-bottom: 16px; }
+.column { background: #ebecf0; border-radius: 6px; padding: 10px; min-width: 260px; width: 260px; }
+.column h4 { margin: 0 0 8px; }
+.column input { width: 100%; padding: 8px; box-sizing: border-box; }
+.card { background: #fff; padding: 8px 10px; border-radius: 4px; margin-bottom: 8px; box-shadow: 0 1px 2px rgba(0,0,0,.2); display: flex; justify-content: space-between; align-items: center; }
+.x { background: none; border: none; cursor: pointer; font-size: 18px; color: #888; }
+.x:hover { color: #c0392b; }
