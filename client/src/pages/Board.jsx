@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import api from "../api";
 
 export default function Board() {
@@ -8,7 +9,7 @@ export default function Board() {
   const [columns, setColumns] = useState([]);
   const [cards, setCards] = useState([]);
   const [newColumn, setNewColumn] = useState("");
-  const [newCards, setNewCards] = useState({}); // { columnId: "typed text" }
+  const [newCards, setNewCards] = useState({});
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -59,6 +60,59 @@ export default function Board() {
     }
   };
 
+  // Cards of one column, in order
+  const cardsOf = (columnId) =>
+    cards
+      .filter((c) => c.column === columnId)
+      .sort((a, b) => a.position - b.position);
+
+  const onDragEnd = async (result) => {
+    const { source, destination } = result;
+    if (!destination) return; // dropped outside any column
+    if (
+      source.droppableId === destination.droppableId &&
+      source.index === destination.index
+    ) {
+      return; // dropped back where it started
+    }
+
+    // 1. Build the new ordered list for every column
+    const lists = {};
+    columns.forEach((col) => {
+      lists[col._id] = cardsOf(col._id);
+    });
+    const [moved] = lists[source.droppableId].splice(source.index, 1);
+    lists[destination.droppableId].splice(destination.index, 0, {
+      ...moved,
+      column: destination.droppableId,
+    });
+
+    // 2. Renumber positions 0,1,2... and collect what to save
+    const affected = new Set([source.droppableId, destination.droppableId]);
+    const newCards = [];
+    const updates = [];
+    Object.entries(lists).forEach(([columnId, list]) => {
+      list.forEach((card, index) => {
+        newCards.push({ ...card, position: index });
+        if (affected.has(columnId)) {
+          updates.push({ id: card._id, column: columnId, position: index });
+        }
+      });
+    });
+
+    // 3. Update the screen right away, remember the old state
+    const previous = cards;
+    setCards(newCards);
+
+    // 4. Save in the background, undo if it fails
+    try {
+      await api.put("/cards/reorder", { boardId: id, updates });
+    } catch (err) {
+      setCards(previous);
+      setError("Could not save the move, so it was undone");
+    }
+  };
+
   if (error && !board) {
     return (
       <div className="page">
@@ -77,38 +131,60 @@ export default function Board() {
       </header>
       {error && <div className="error">{error}</div>}
 
-      <div className="columns">
-        {columns.map((col) => (
-          <div key={col._id} className="column">
-            <h4>{col.title}</h4>
+      <DragDropContext onDragEnd={onDragEnd}>
+        <div className="columns">
+          {columns.map((col) => (
+            <div key={col._id} className="column">
+              <h4>{col.title}</h4>
 
-            {cards
-              .filter((card) => card.column === col._id)
-              .map((card) => (
-                <div key={card._id} className="card">
-                  <span>{card.title}</span>
-                  <button className="x" onClick={() => deleteCard(card._id)}>×</button>
-                </div>
-              ))}
+              <Droppable droppableId={col._id}>
+                {(provided, snapshot) => (
+                  <div
+                    ref={provided.innerRef}
+                    {...provided.droppableProps}
+                    className={`card-list ${snapshot.isDraggingOver ? "over" : ""}`}
+                  >
+                    {cardsOf(col._id).map((card, index) => (
+                      <Draggable key={card._id} draggableId={card._id} index={index}>
+                        {(drag, dragSnapshot) => (
+                          <div
+                            ref={drag.innerRef}
+                            {...drag.draggableProps}
+                            {...drag.dragHandleProps}
+                            className={`card ${dragSnapshot.isDragging ? "dragging" : ""}`}
+                          >
+                            <span>{card.title}</span>
+                            <button className="x" onClick={() => deleteCard(card._id)}>
+                              ×
+                            </button>
+                          </div>
+                        )}
+                      </Draggable>
+                    ))}
+                    {provided.placeholder}
+                  </div>
+                )}
+              </Droppable>
 
-            <form onSubmit={(e) => addCard(e, col._id)}>
-              <input
-                placeholder="+ Add a card"
-                value={newCards[col._id] || ""}
-                onChange={(e) => setNewCards({ ...newCards, [col._id]: e.target.value })}
-              />
-            </form>
-          </div>
-        ))}
+              <form onSubmit={(e) => addCard(e, col._id)}>
+                <input
+                  placeholder="+ Add a card"
+                  value={newCards[col._id] || ""}
+                  onChange={(e) => setNewCards({ ...newCards, [col._id]: e.target.value })}
+                />
+              </form>
+            </div>
+          ))}
 
-        <form onSubmit={addColumn} className="column new-column">
-          <input
-            placeholder="+ Add a column"
-            value={newColumn}
-            onChange={(e) => setNewColumn(e.target.value)}
-          />
-        </form>
-      </div>
+          <form onSubmit={addColumn} className="column new-column">
+            <input
+              placeholder="+ Add a column"
+              value={newColumn}
+              onChange={(e) => setNewColumn(e.target.value)}
+            />
+          </form>
+        </div>
+      </DragDropContext>
     </div>
   );
 }
